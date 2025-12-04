@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -49,12 +49,9 @@ async def cmd_my_id(message: Message):
 
 # === Админка в ЛС ===
 
-@router.message(Command("admin"), F.chat.type == "private")
+@router.message(Command("admin"), F.chat.type == "private", StateFilter(None))
 async def cmd_admin_panel(message: Message, state: FSMContext):
     """Админ-панель в ЛС."""
-    # Для первого использования - любой может стать админом
-    # Потом можно ограничить через ADMIN_IDS
-    
     await message.answer(
         "🔧 <b>Админ-панель</b>\n\n"
         "Команды:\n"
@@ -66,23 +63,37 @@ async def cmd_admin_panel(message: Message, state: FSMContext):
     )
 
 
-@router.message(Command("set_trainer"), F.chat.type == "private")
+@router.message(Command("cancel"), F.chat.type == "private")
+async def cmd_cancel(message: Message, state: FSMContext):
+    """Отмена текущего действия."""
+    current_state = await state.get_state()
+    if current_state is None:
+        await message.answer("🤷 Нечего отменять.")
+        return
+    
+    await state.clear()
+    await message.answer("❌ Действие отменено.")
+
+
+@router.message(Command("set_trainer"), F.chat.type == "private", StateFilter(None))
 async def cmd_set_trainer(message: Message, state: FSMContext):
     """Начать процесс установки тренерского чата."""
     await message.answer(
         "📝 Отправь ID чата, который нужно сделать <b>тренерским</b>:\n\n"
-        "<i>Чтобы узнать ID, напиши в группе /chat_id_blin</i>",
+        "<i>Чтобы узнать ID, напиши в группе /chat_id_blin</i>\n\n"
+        "Для отмены: /cancel",
         parse_mode="HTML"
     )
     await state.set_state(AdminStates.waiting_chat_id)
     await state.update_data(action="trainer")
 
 
-@router.message(Command("set_default"), F.chat.type == "private")
+@router.message(Command("set_default"), F.chat.type == "private", StateFilter(None))
 async def cmd_set_default(message: Message, state: FSMContext):
     """Начать процесс установки обычного чата."""
     await message.answer(
-        "📝 Отправь ID чата, который нужно сделать <b>обычным</b>:",
+        "📝 Отправь ID чата, который нужно сделать <b>обычным</b>:\n\n"
+        "Для отмены: /cancel",
         parse_mode="HTML"
     )
     await state.set_state(AdminStates.waiting_chat_id)
@@ -126,7 +137,7 @@ async def process_chat_id(message: Message, state: FSMContext):
     await state.clear()
 
 
-@router.message(Command("chat_info"), F.chat.type == "private")
+@router.message(Command("chat_info"), F.chat.type == "private", StateFilter(None))
 async def cmd_chat_info(message: Message):
     """Информация о чате по ID."""
     args = message.text.split(maxsplit=1)
