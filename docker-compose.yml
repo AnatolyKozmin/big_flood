@@ -36,8 +36,8 @@ services:
     image: postgres:16-alpine
     container_name: big_flood_db
     restart: unless-stopped
-    ports:
-      - "5434:5432"
+    # Порт не пробрасываем наружу - доступ только внутри docker сети
+    # Для внешнего доступа раскомментируй: ports: ["5434:5432"]
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
