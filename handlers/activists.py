@@ -59,7 +59,7 @@ async def cmd_info(message: Message, session: AsyncSession, command_args: str):
 
 @router.message(BangCommand("активист"))
 async def cmd_activist_of_day(message: Message, session: AsyncSession, command_args: str):
-    """!активист дня — случайный активист дня."""
+    """!активист дня — случайный активист дня (только для обычных чатов)."""
     if command_args.lower().strip() != "дня":
         return
     
@@ -71,6 +71,11 @@ async def cmd_activist_of_day(message: Message, session: AsyncSession, command_a
         await message.answer("❌ В этом чате ещё нет активистов!")
         return
     
+    # Только для обычных чатов (не тренерских)
+    if chat.chat_type == "trainer":
+        await message.answer("👥 В тренерском чате используй команду <code>!тренер дня</code>", parse_mode="HTML")
+        return
+    
     activist = await activist_repo.get_random(chat)
     
     if not activist:
@@ -79,16 +84,9 @@ async def cmd_activist_of_day(message: Message, session: AsyncSession, command_a
     
     mention = f"@{activist.username}" if activist.username else activist.full_name
     
-    # Для тренерского чата - "тренер дня"
-    if chat.chat_type == "trainer":
-        title = "Тренер дня"
-        congrats = f"Поздравляем, {activist.full_name}! Сегодня ты лучший тренер!"
-    else:
-        title = "Активист дня"
-        congrats = f"Поздравляем, {activist.full_name}! Сегодня ты главный!"
-    
     await message.answer(
-        f"🎉 <b>{title}:</b> {mention}\n\n{congrats}",
+        f"🎉 <b>Активист дня:</b> {mention}\n\n"
+        f"Поздравляем, {activist.full_name}! Сегодня ты главный!",
         parse_mode="HTML"
     )
 
@@ -109,7 +107,7 @@ async def cmd_trainer_of_day(message: Message, session: AsyncSession, command_ar
     
     # Только для тренерских чатов
     if chat.chat_type != "trainer":
-        await message.answer("🏋️ Эта команда доступна только в тренерском чате!")
+        await message.answer("🏋️ В обычном чате используй команду <code>!активист дня</code>", parse_mode="HTML")
         return
     
     activist = await activist_repo.get_random(chat)
