@@ -1,12 +1,29 @@
 from aiogram import Router, F
 from aiogram.types import Message
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from filters import BangCommand
+from database.repositories import ChatRepository
 
 router = Router(name="help")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
-HELP_TEXT = """
+
+def get_help_text(is_trainer: bool = False) -> str:
+    """Генерирует текст справки в зависимости от типа чата."""
+    
+    # Команды для конкретного типа чата
+    if is_trainer:
+        person_commands = """• <code>!инфа [фамилия/юзернейм]</code> — инфа о тренере
+• <code>!тренер дня</code> — случайный тренер дня
+• <code>!скрипач дня</code> — скрипач дня 🎻
+• <code>!кто [текст]</code> — случайный участник чата"""
+    else:
+        person_commands = """• <code>!инфа [фамилия/юзернейм]</code> — инфа об активисте
+• <code>!активист дня</code> — случайный активист дня
+• <code>!кто [текст]</code> — случайный участник чата"""
+    
+    return f"""
 📚 <b>Список команд:</b>
 
 <b>📝 Цитаты:</b>
@@ -14,11 +31,7 @@ HELP_TEXT = """
 • <code>!мудрость</code> — случайная цитата из чата
 
 <b>👥 Информация:</b>
-• <code>!инфа [фамилия/юзернейм]</code> — инфа об участнике
-• <code>!активист дня</code> — случайный активист (обычный чат)
-• <code>!тренер дня</code> — случайный тренер (тренерский чат)
-• <code>!скрипач дня</code> — скрипач дня (тренерский чат)
-• <code>!кто [текст]</code> — случайный участник чата
+{person_commands}
 
 <b>🎮 Развлечения:</b>
 • <code>!рулетка</code> — шанс 1/6 получить мут на 10 мин
@@ -42,19 +55,31 @@ HELP_TEXT = """
 
 
 @router.message(BangCommand("помощь"))
-async def cmd_help(message: Message, command_args: str):
+async def cmd_help(message: Message, session: AsyncSession, command_args: str):
     """!помощь — список всех команд."""
-    await message.answer(HELP_TEXT, parse_mode="HTML")
+    chat_repo = ChatRepository(session)
+    chat = await chat_repo.get_by_chat_id(message.chat.id)
+    
+    is_trainer = chat and chat.chat_type == "trainer"
+    await message.answer(get_help_text(is_trainer), parse_mode="HTML")
 
 
 @router.message(BangCommand("хелп"))
-async def cmd_help_alias(message: Message, command_args: str):
+async def cmd_help_alias(message: Message, session: AsyncSession, command_args: str):
     """!хелп — алиас для !помощь."""
-    await message.answer(HELP_TEXT, parse_mode="HTML")
+    chat_repo = ChatRepository(session)
+    chat = await chat_repo.get_by_chat_id(message.chat.id)
+    
+    is_trainer = chat and chat.chat_type == "trainer"
+    await message.answer(get_help_text(is_trainer), parse_mode="HTML")
 
 
 @router.message(BangCommand("команды"))
-async def cmd_commands(message: Message, command_args: str):
+async def cmd_commands(message: Message, session: AsyncSession, command_args: str):
     """!команды — алиас для !помощь."""
-    await message.answer(HELP_TEXT, parse_mode="HTML")
+    chat_repo = ChatRepository(session)
+    chat = await chat_repo.get_by_chat_id(message.chat.id)
+    
+    is_trainer = chat and chat.chat_type == "trainer"
+    await message.answer(get_help_text(is_trainer), parse_mode="HTML")
 
