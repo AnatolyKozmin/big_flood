@@ -1,5 +1,7 @@
+import logging
+
 from aiogram import Router, F
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -7,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.engine import async_session
 from database.repositories import ChatRepository
+
+logger = logging.getLogger(__name__)
 
 router = Router(name="admin")
 
@@ -47,11 +51,19 @@ async def cmd_my_id(message: Message):
     )
 
 
+@router.message(Command("ping"), F.chat.type == "private")
+async def cmd_ping(message: Message):
+    """Тест - бот живой?"""
+    logger.info(f"PING from {message.from_user.id}")
+    await message.answer("🏓 Pong!")
+
+
 # === Админка в ЛС ===
 
-@router.message(Command("admin"), F.chat.type == "private", StateFilter(None))
+@router.message(Command("admin"), F.chat.type == "private")
 async def cmd_admin_panel(message: Message, state: FSMContext):
     """Админ-панель в ЛС."""
+    await state.clear()
     await message.answer(
         "🔧 <b>Админ-панель</b>\n\n"
         "Команды:\n"
@@ -75,7 +87,7 @@ async def cmd_cancel(message: Message, state: FSMContext):
     await message.answer("❌ Действие отменено.")
 
 
-@router.message(Command("set_trainer"), F.chat.type == "private", StateFilter(None))
+@router.message(Command("set_trainer"), F.chat.type == "private")
 async def cmd_set_trainer(message: Message, state: FSMContext):
     """Начать процесс установки тренерского чата."""
     await message.answer(
@@ -88,7 +100,7 @@ async def cmd_set_trainer(message: Message, state: FSMContext):
     await state.update_data(action="trainer")
 
 
-@router.message(Command("set_default"), F.chat.type == "private", StateFilter(None))
+@router.message(Command("set_default"), F.chat.type == "private")
 async def cmd_set_default(message: Message, state: FSMContext):
     """Начать процесс установки обычного чата."""
     await message.answer(
@@ -137,9 +149,14 @@ async def process_chat_id(message: Message, state: FSMContext):
     await state.clear()
 
 
-@router.message(Command("chat_info"), F.chat.type == "private", StateFilter(None))
-async def cmd_chat_info(message: Message):
+@router.message(Command("chat_info"), F.chat.type == "private")
+async def cmd_chat_info(message: Message, state: FSMContext):
     """Информация о чате по ID."""
+    logger.info(f"chat_info called by {message.from_user.id}, text: {message.text}")
+    
+    # Очищаем состояние если было
+    await state.clear()
+    
     args = message.text.split(maxsplit=1)
     
     if len(args) < 2:
