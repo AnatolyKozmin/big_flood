@@ -95,7 +95,7 @@ async def cmd_activist_of_day(message: Message, session: AsyncSession, command_a
 
 @router.message(BangCommand("тренер"))
 async def cmd_trainer_of_day(message: Message, session: AsyncSession, command_args: str):
-    """!тренер дня — случайный тренер дня (для тренерских чатов)."""
+    """!тренер дня — случайный тренер дня (только для тренерских чатов)."""
     if command_args.lower().strip() != "дня":
         return
     
@@ -105,6 +105,11 @@ async def cmd_trainer_of_day(message: Message, session: AsyncSession, command_ar
     chat = await chat_repo.get_by_chat_id(message.chat.id)
     if not chat:
         await message.answer("❌ В этом чате ещё нет тренеров!")
+        return
+    
+    # Только для тренерских чатов
+    if chat.chat_type != "trainer":
+        await message.answer("🏋️ Эта команда доступна только в тренерском чате!")
         return
     
     activist = await activist_repo.get_random(chat)
