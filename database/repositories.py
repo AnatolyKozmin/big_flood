@@ -35,6 +35,19 @@ class ChatRepository:
         stmt = select(Chat).where(Chat.chat_id == chat_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
+    
+    async def set_chat_type(self, chat_id: int, chat_type: str) -> Optional[Chat]:
+        """Установить тип чата (default, trainer)."""
+        stmt = select(Chat).where(Chat.chat_id == chat_id)
+        result = await self.session.execute(stmt)
+        chat = result.scalar_one_or_none()
+        
+        if chat:
+            chat.chat_type = chat_type
+            await self.session.commit()
+            await self.session.refresh(chat)
+        
+        return chat
 
 
 class QuoteRepository:

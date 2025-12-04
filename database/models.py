@@ -19,6 +19,7 @@ class Chat(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     chat_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False, index=True)
     title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    chat_type: Mapped[str] = mapped_column(String(50), default="default", nullable=False)  # default, trainer
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), 
         server_default=func.now()

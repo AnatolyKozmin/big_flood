@@ -57,10 +57,9 @@ async def cmd_info(message: Message, session: AsyncSession, command_args: str):
     await message.answer("\n".join(info_parts), parse_mode="HTML")
 
 
-@router.message(BangCommand("орг"))
-async def cmd_org_of_day(message: Message, session: AsyncSession, command_args: str):
-    """!орг дня — случайный активист дня."""
-    # Проверяем что это именно "орг дня"
+@router.message(BangCommand("активист"))
+async def cmd_activist_of_day(message: Message, session: AsyncSession, command_args: str):
+    """!активист дня — случайный активист дня."""
     if command_args.lower().strip() != "дня":
         return
     
@@ -80,9 +79,79 @@ async def cmd_org_of_day(message: Message, session: AsyncSession, command_args: 
     
     mention = f"@{activist.username}" if activist.username else activist.full_name
     
+    # Для тренерского чата - "тренер дня"
+    if chat.chat_type == "trainer":
+        title = "Тренер дня"
+        congrats = f"Поздравляем, {activist.full_name}! Сегодня ты лучший тренер!"
+    else:
+        title = "Активист дня"
+        congrats = f"Поздравляем, {activist.full_name}! Сегодня ты главный!"
+    
     await message.answer(
-        f"🎉 <b>Орг дня:</b> {mention}\n\n"
-        f"Поздравляем, {activist.full_name}! Сегодня ты главный!",
+        f"🎉 <b>{title}:</b> {mention}\n\n{congrats}",
+        parse_mode="HTML"
+    )
+
+
+@router.message(BangCommand("тренер"))
+async def cmd_trainer_of_day(message: Message, session: AsyncSession, command_args: str):
+    """!тренер дня — случайный тренер дня (для тренерских чатов)."""
+    if command_args.lower().strip() != "дня":
+        return
+    
+    chat_repo = ChatRepository(session)
+    activist_repo = ActivistRepository(session)
+    
+    chat = await chat_repo.get_by_chat_id(message.chat.id)
+    if not chat:
+        await message.answer("❌ В этом чате ещё нет тренеров!")
+        return
+    
+    activist = await activist_repo.get_random(chat)
+    
+    if not activist:
+        await message.answer("❌ В этом чате ещё нет тренеров!")
+        return
+    
+    mention = f"@{activist.username}" if activist.username else activist.full_name
+    
+    await message.answer(
+        f"🏋️ <b>Тренер дня:</b> {mention}\n\n"
+        f"Поздравляем, {activist.full_name}! Сегодня ты лучший тренер!",
+        parse_mode="HTML"
+    )
+
+
+@router.message(BangCommand("скрипач"))
+async def cmd_skripach_of_day(message: Message, session: AsyncSession, command_args: str):
+    """!скрипач дня — случайный скрипач дня (для тренерских чатов)."""
+    if command_args.lower().strip() != "дня":
+        return
+    
+    chat_repo = ChatRepository(session)
+    activist_repo = ActivistRepository(session)
+    
+    chat = await chat_repo.get_by_chat_id(message.chat.id)
+    if not chat:
+        await message.answer("❌ В этом чате ещё нет тренеров!")
+        return
+    
+    # Только для тренерских чатов
+    if chat.chat_type != "trainer":
+        await message.answer("🎻 Эта команда доступна только в тренерском чате!")
+        return
+    
+    activist = await activist_repo.get_random(chat)
+    
+    if not activist:
+        await message.answer("❌ В этом чате ещё нет тренеров!")
+        return
+    
+    mention = f"@{activist.username}" if activist.username else activist.full_name
+    
+    await message.answer(
+        f"🎻 <b>Скрипач дня:</b> {mention}\n\n"
+        f"{activist.full_name}, сегодня ты наш скрипач! 🎶",
         parse_mode="HTML"
     )
 

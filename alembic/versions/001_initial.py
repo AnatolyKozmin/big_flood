@@ -25,6 +25,7 @@ def upgrade() -> None:
         sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
         sa.Column('chat_id', sa.BigInteger(), nullable=False),
         sa.Column('title', sa.String(length=255), nullable=True),
+        sa.Column('chat_type', sa.String(length=50), nullable=False, server_default='default'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('chat_id')

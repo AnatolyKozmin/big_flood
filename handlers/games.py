@@ -162,12 +162,6 @@ async def cmd_duel(message: Message, session: AsyncSession, command_args: str):
 @router.message(BangCommand("анмут"))
 async def cmd_unmute_all(message: Message, session: AsyncSession, command_args: str):
     """!анмут — размутить всех в муте."""
-    # Проверяем права администратора
-    member = await message.chat.get_member(message.from_user.id)
-    if member.status not in ("administrator", "creator"):
-        await message.answer("❌ Только администраторы могут размучивать!")
-        return
-    
     chat_repo = ChatRepository(session)
     muted_repo = MutedUserRepository(session)
     
