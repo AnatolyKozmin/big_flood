@@ -12,7 +12,7 @@ from filters import BangCommand
 router = Router(name="fun")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
-# Дата дедлайна
+# Дата дедлайна (по МСК)
 TARGET_DATE = datetime(2025, 11, 27, 0, 0, 0)
 
 # Ответы для !нахуй
@@ -25,54 +25,64 @@ NAHUI_RESPONSES = [
     "{name}, вали нахуй отсюда! 🌚",
     "🖕 {name} 🖕",
     "{name}, тебе туда → 🚪",
+    "Эй, {name}, нахуй иди! 🚶",
+    "{name}, пошёл нахуй! 👋",
 ]
 
 # Ответы для !обосновать
 OBOSNOVAT_RESPONSES = [
-    "Обосновал 👍",
-    "Считаю, что {name} не прав, потому что... потому что! 🧠",
-    "Аргументы {name}: ❌\nМои аргументы: ✅",
-    "{name}, ты обоснован! 📜",
-    "По факту {name} слился 💧",
-    "Обоснование для {name}: 🤡",
-    "{name} = обоснован ✔️",
-    "Обосновываю {name} по всем фронтам! 🎯",
+    "А тебе это ебать не должно 😎",
+    "А тебе это ебать не должно, {name} 🤷",
+    "Тебе это ебать не должно! 💅",
+    "{name}, а тебе это ебать не должно 😏",
+    "Короче, {name}, тебе это ебать не должно 🙄",
+    "А с хуя ли тебе это должно ебать, {name}? 🤔",
+    "Тебя это ебать не должно от слова совсем 💀",
+    "{name}, тебе не похуй? Должно быть похуй 😌",
 ]
 
 
 @router.message(BangCommand("нахуй"))
 async def cmd_nahui(message: Message, command_args: str):
-    """!нахуй (в ответ) — адресный ответ."""
-    if not message.reply_to_message or not message.reply_to_message.from_user:
+    """!нахуй (в ответ) — адресный ответ на сообщение."""
+    if not message.reply_to_message:
         await message.answer("❌ Ответь на сообщение того, кого посылаешь!")
         return
     
     target = message.reply_to_message.from_user
     
-    if target.is_bot:
+    if target and target.is_bot:
         await message.answer("❌ Ботов нахуй не посылают! 🤖")
         return
     
-    response = random.choice(NAHUI_RESPONSES).format(name=target.full_name)
-    await message.answer(response)
+    target_name = target.full_name if target else "Аноним"
+    response = random.choice(NAHUI_RESPONSES).format(name=target_name)
+    
+    # Отвечаем на то сообщение, на которое ответил пользователь
+    await message.reply_to_message.reply(response)
 
 
 @router.message(BangCommand("обосновать"))
 async def cmd_obosnovat(message: Message, command_args: str):
-    """!обосновать (в ответ) — адресный ответ."""
-    if not message.reply_to_message or not message.reply_to_message.from_user:
+    """!обосновать (в ответ) — адресный ответ на сообщение."""
+    if not message.reply_to_message:
         await message.answer("❌ Ответь на сообщение того, кого обосновываешь!")
         return
     
     target = message.reply_to_message.from_user
-    response = random.choice(OBOSNOVAT_RESPONSES).format(name=target.full_name)
-    await message.answer(response)
+    target_name = target.full_name if target else "Аноним"
+    response = random.choice(OBOSNOVAT_RESPONSES).format(name=target_name)
+    
+    # Отвечаем на то сообщение, на которое ответил пользователь
+    await message.reply_to_message.reply(response)
 
 
 @router.message(BangCommand("когда"))
 async def cmd_when(message: Message, command_args: str):
     """!когда — сколько осталось до 27.11.2025."""
-    now = datetime.now()
+    from utils.timezone import get_moscow_now
+    
+    now = get_moscow_now()
     
     if now >= TARGET_DATE:
         await message.answer("🎉 27.11.2025 уже наступило!")

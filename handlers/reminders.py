@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.repositories import ChatRepository, ReminderRepository
 from filters import BangCommand
+from utils.timezone import get_moscow_now, MOSCOW_TZ
 
 router = Router(name="reminders")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
@@ -40,12 +41,14 @@ async def cmd_remind(message: Message, session: AsyncSession, command_args: str)
     day, month, year, hour, minute = map(int, match.groups())
     
     try:
-        remind_at = datetime(year, month, day, hour, minute)
+        # Время указывается по Москве
+        remind_at = datetime(year, month, day, hour, minute, tzinfo=MOSCOW_TZ)
     except ValueError:
         await message.answer("❌ Некорректная дата или время!")
         return
     
-    if remind_at <= datetime.now():
+    now_moscow = get_moscow_now().replace(tzinfo=MOSCOW_TZ)
+    if remind_at <= now_moscow:
         await message.answer("❌ Нельзя установить напоминание в прошлое!")
         return
     
@@ -69,7 +72,7 @@ async def cmd_remind(message: Message, session: AsyncSession, command_args: str)
     
     await message.answer(
         f"⏰ Напоминание #{reminder.id} установлено!\n"
-        f"📅 Дата: {remind_at.strftime('%d.%m.%Y %H:%M')}"
+        f"📅 Дата: {remind_at.strftime('%d.%m.%Y %H:%M')} (МСК)"
         f"{text_preview}",
         parse_mode="HTML"
     )

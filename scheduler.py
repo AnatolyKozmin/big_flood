@@ -7,6 +7,7 @@ from aiogram import Bot
 from database.engine import async_session
 from database.repositories import ReminderRepository, MathDuelRepository
 from database.models import Chat
+from utils.timezone import get_moscow_now, MOSCOW_TZ
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +17,9 @@ async def check_reminders(bot: Bot):
     async with async_session() as session:
         reminder_repo = ReminderRepository(session)
         
-        # Получаем все непосланные напоминания до текущего момента
-        reminders = await reminder_repo.get_pending(datetime.now())
+        # Получаем все непосланные напоминания до текущего момента (по МСК)
+        now_moscow = get_moscow_now().replace(tzinfo=MOSCOW_TZ)
+        reminders = await reminder_repo.get_pending(now_moscow)
         
         for reminder in reminders:
             try:
