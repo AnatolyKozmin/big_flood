@@ -741,7 +741,7 @@ async def process_template_photo(message: Message, state: FSMContext, bot: Bot):
             await session.commit()
     
     await state.clear()
-            await message.answer(
+    await message.answer(
         "✅ <b>Плашка загружена!</b>\n\n"
         "Теперь цитаты будут генерироваться с этим фоном.",
         parse_mode="HTML",
@@ -756,3 +756,148 @@ async def process_template_invalid(message: Message):
         "❌ Пожалуйста, отправь изображение (фото).\n\n"
         "Для отмены: /cancel"
     )
+
+
+# ============================================
+# КОМАНДЫ ДЛЯ ПРОВЕРКИ БАЗЫ ДАННЫХ
+# ============================================
+
+@router.message(Command("db_stats"), F.chat.type == "private")
+async def cmd_db_stats(message: Message):
+    """Статистика по базе данных."""
+    async with async_session() as session:
+        from sqlalchemy import select, func
+        from database.models import Chat, Activist, Quote, ChatMember
+        
+        # Считаем статистику
+        chats_count = (await session.execute(select(func.count(Chat.id)))).scalar_one()
+        activists_count = (await session.execute(select(func.count(Activist.id)))).scalar_one()
+        quotes_count = (await session.execute(select(func.count(Quote.id)))).scalar_one()
+        members_count = (await session.execute(select(func.count(ChatMember.id)))).scalar_one()
+        
+        # Получаем чаты с количеством активистов
+        stmt = (
+            select(Chat, func.count(Activist.id).label('activist_count'))
+            .outerjoin(Activist, Chat.id == Activist.chat_pk)
+            .group_by(Chat.id)
+            .order_by(Chat.created_at.desc())
+        )
+        result = await session.execute(stmt)
+        chat_stats = result.all()
+    
+    lines = [
+        "📊 <b>Статистика базы данных</b>\n",
+        f"📋 Всего чатов: <b>{chats_count}</b>",
+        f"👥 Всего активистов: <b>{activists_count}</b>",
+        f"💬 Всего цитат: <b>{quotes_count}</b>",
+        f"👤 Всего участников (трекинг): <b>{members_count}</b>",
+        "\n<b>По чатам:</b>\n"
+    ]
+    
+    for chat, activist_count in chat_stats:
+        type_emoji = "🏋️" if chat.chat_type == "trainer" else "👥"
+        title = chat.title or f"ID: {chat.chat_id}"
+        if len(title) > 30:
+            title = title[:27] + "..."
+        lines.append(f"{type_emoji} {title}: <b>{activist_count}</b> активистов")
+    
+    await message.answer("\n".join(lines), parse_mode="HTML")
+
+
+@router.message(Command("db_activists"), F.chat.type == "private")
+async def cmd_db_activists(message: Message):
+    """Список всех активистов по чатам."""
+    async with async_session() as session:
+        from sqlalchemy import select
+        from database.models import Chat, Activist
+        
+        # Получаем все чаты с активистами
+        stmt = select(Chat).order_by(Chat.created_at.desc())
+        result = await session.execute(stmt)
+        chats = result.scalars().all()
+    
+    if not chats:
+        await message.answer("📭 В базе нет чатов.")
+        return
+    
+    for chat in chats:
+        async with async_session() as session:
+            stmt = select(Activist).where(Activist.chat_pk == chat.id).limit(30)
+            result = await session.execute(stmt)
+            activists = result.scalars().all()
+        
+        type_emoji = "🏋️" if chat.chat_type == "trainer" else "👥"
+        title = chat.title or f"ID: {chat.chat_id}"
+        
+        lines = [f"{type_emoji} <b>{title}</b>\n"]
+        
+        if not activists:
+            lines.append("<i>Нет активистов</i>")
+        else:
+            for i, a in enumerate(activists, 1):
+                group_part = f" ({a.group_name})" if a.group_name else ""
+                lines.append(f"{i}. {a.full_name} @{a.username}{group_part}")
+            
+            if len(activists) == 30:
+                lines.append("\n<i>...показаны первые 30</i>")
+        
+        await message.answer("\n".join(lines), parse_mode="HTML")
+
+
+@router.message(Command("db_check"), F.chat.type == "private")
+async def cmd_db_check(message: Message):
+    """Проверить конкретный чат по ID."""
+    args = message.text.split(maxsplit=1)
+    
+    if len(args) < 2:
+        await message.answer(
+            "❌ Укажи ID чата:\n"
+            "<code>/db_check -123456789</code>",
+            parse_mode="HTML"
+        )
+        return
+    
+    try:
+        chat_id = int(args[1].strip())
+    except ValueError:
+        await message.answer("❌ Некорректный ID чата.")
+        return
+    
+    async with async_session() as session:
+        from sqlalchemy import select
+        from database.models import Chat, Activist
+        
+        stmt = select(Chat).where(Chat.chat_id == chat_id)
+        result = await session.execute(stmt)
+        chat = result.scalar_one_or_none()
+        
+        if not chat:
+            await message.answer(f"❌ Чат с ID <code>{chat_id}</code> не найден в базе.", parse_mode="HTML")
+            return
+        
+        stmt = select(Activist).where(Activist.chat_pk == chat.id)
+        result = await session.execute(stmt)
+        activists = result.scalars().all()
+    
+    type_name = "🏋️ Тренерский" if chat.chat_type == "trainer" else "👥 Обычный"
+    sheet_status = "✅" if chat.google_sheet_url else "❌"
+    
+    lines = [
+        f"📊 <b>Чат: {chat.title or 'Без названия'}</b>\n",
+        f"🆔 ID: <code>{chat.chat_id}</code>",
+        f"🏷 Тип: {type_name}",
+        f"📊 Таблица: {sheet_status}",
+        f"👥 Активистов: <b>{len(activists)}</b>\n",
+    ]
+    
+    if activists:
+        lines.append("<b>Список:</b>")
+        for i, a in enumerate(activists[:50], 1):
+            group_part = f" ({a.group_name})" if a.group_name else ""
+            phone_part = f" 📞{a.phone}" if a.phone else ""
+            lines.append(f"{i}. {a.full_name} @{a.username}{group_part}{phone_part}")
+        
+        if len(activists) > 50:
+            lines.append(f"\n<i>...и ещё {len(activists) - 50}</i>")
+    
+    await message.answer("\n".join(lines), parse_mode="HTML")
