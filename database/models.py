@@ -51,6 +51,9 @@ class Chat(Base):
     members: Mapped[list["ChatMember"]] = relationship(
         "ChatMember", back_populates="chat", cascade="all, delete-orphan"
     )
+    quote_template: Mapped[Optional["QuoteTemplate"]] = relationship(
+        "QuoteTemplate", back_populates="chat", cascade="all, delete-orphan", uselist=False
+    )
     
     def __repr__(self) -> str:
         return f"<Chat(id={self.id}, chat_id={self.chat_id}, title={self.title})>"
@@ -198,6 +201,58 @@ class MutedUser(Base):
     
     def __repr__(self) -> str:
         return f"<MutedUser(id={self.id}, user_id={self.user_id})>"
+
+
+class QuoteTemplate(Base):
+    """Настройки шаблона для генерации картинок с цитатами."""
+    
+    __tablename__ = "quote_templates"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    chat_pk: Mapped[int] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"), nullable=False, unique=True)
+    
+    # Размеры итоговой картинки
+    image_width: Mapped[int] = mapped_column(Integer, default=800)
+    image_height: Mapped[int] = mapped_column(Integer, default=600)
+    
+    # Фоновое изображение
+    background_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    background_color: Mapped[str] = mapped_column(String(20), default="#1e1e28")  # HEX цвет если нет фона
+    
+    # Область для текста цитаты (x, y, width, height)
+    text_x: Mapped[int] = mapped_column(Integer, default=60)
+    text_y: Mapped[int] = mapped_column(Integer, default=100)
+    text_width: Mapped[int] = mapped_column(Integer, default=680)
+    text_height: Mapped[int] = mapped_column(Integer, default=300)
+    text_color: Mapped[str] = mapped_column(String(20), default="#ffffff")
+    text_font_size: Mapped[int] = mapped_column(Integer, default=32)
+    
+    # Область для аватарки (x, y, размер)
+    avatar_x: Mapped[int] = mapped_column(Integer, default=350)
+    avatar_y: Mapped[int] = mapped_column(Integer, default=420)
+    avatar_size: Mapped[int] = mapped_column(Integer, default=80)
+    avatar_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    
+    # Область для имени автора (x, y)
+    author_x: Mapped[int] = mapped_column(Integer, default=400)
+    author_y: Mapped[int] = mapped_column(Integer, default=520)
+    author_color: Mapped[str] = mapped_column(String(20), default="#ffc107")
+    author_font_size: Mapped[int] = mapped_column(Integer, default=24)
+    
+    # Кастомный шрифт
+    font_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    
+    chat: Mapped["Chat"] = relationship("Chat", back_populates="quote_template")
+    
+    def __repr__(self) -> str:
+        return f"<QuoteTemplate(id={self.id}, chat_pk={self.chat_pk})>"
 
 
 class MathDuel(Base):

@@ -9,10 +9,12 @@ from .reminders import router as reminders_router
 from .fun import router as fun_router
 from .help import router as help_router
 from .admin import router as admin_router
+from .quote_admin import router as quote_admin_router
 
 # Главный роутер, объединяющий все остальные
 main_router = Router(name="main")
 main_router.include_router(admin_router)  # Админка первая (для ЛС)
+main_router.include_router(quote_admin_router)  # Админка шаблонов цитат
 main_router.include_router(common_router)
 main_router.include_router(help_router)
 main_router.include_router(quotes_router)

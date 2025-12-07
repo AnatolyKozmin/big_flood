@@ -83,7 +83,7 @@ def build_chat_settings_keyboard(chat_id: int, chat_type: str):
     
     builder.button(text="📊 Привязать таблицу", callback_data=f"chat:sheet:{chat_id}")
     builder.button(text="🔄 Синхронизировать", callback_data=f"chat:sync:{chat_id}")
-    builder.button(text="🖼 Загрузить плашку", callback_data=f"chat:template:{chat_id}")
+    builder.button(text="🎨 Настройка цитат", callback_data=f"qtpl:menu:{chat_id}")
     builder.button(text="📋 Список активистов", callback_data=f"chat:activists:{chat_id}")
     builder.button(text="🗑 Очистить активистов", callback_data=f"chat:clear:{chat_id}")
     builder.button(text="◀️ К списку чатов", callback_data="admin:chats")

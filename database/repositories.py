@@ -4,7 +4,7 @@ from typing import Optional, Sequence
 from sqlalchemy import select, func, or_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import Chat, Quote, Activist, Reminder, MutedUser, MathDuel, ChatMember
+from .models import Chat, Quote, Activist, Reminder, MutedUser, MathDuel, ChatMember, QuoteTemplate
 
 
 class ChatRepository:
@@ -458,3 +458,49 @@ class MathDuelRepository:
         
         await self.session.commit()
         return len(duels)
+
+
+class QuoteTemplateRepository:
+    """Репозиторий для работы с шаблонами цитат."""
+    
+    def __init__(self, session: AsyncSession):
+        self.session = session
+    
+    async def get_or_create(self, chat: Chat) -> QuoteTemplate:
+        """Получить или создать шаблон для чата."""
+        stmt = select(QuoteTemplate).where(QuoteTemplate.chat_pk == chat.id)
+        result = await self.session.execute(stmt)
+        template = result.scalar_one_or_none()
+        
+        if template is None:
+            template = QuoteTemplate(chat_pk=chat.id)
+            self.session.add(template)
+            await self.session.commit()
+            await self.session.refresh(template)
+        
+        return template
+    
+    async def get_by_chat(self, chat: Chat) -> Optional[QuoteTemplate]:
+        """Получить шаблон для чата."""
+        stmt = select(QuoteTemplate).where(QuoteTemplate.chat_pk == chat.id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+    
+    async def update(
+        self,
+        template: QuoteTemplate,
+        **kwargs
+    ) -> QuoteTemplate:
+        """Обновить настройки шаблона."""
+        for key, value in kwargs.items():
+            if hasattr(template, key) and value is not None:
+                setattr(template, key, value)
+        
+        await self.session.commit()
+        await self.session.refresh(template)
+        return template
+    
+    async def delete(self, template: QuoteTemplate) -> None:
+        """Удалить шаблон."""
+        await self.session.delete(template)
+        await self.session.commit()
