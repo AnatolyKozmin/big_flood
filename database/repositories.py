@@ -48,6 +48,41 @@ class ChatRepository:
             await self.session.refresh(chat)
         
         return chat
+    
+    async def get_all(self) -> Sequence[Chat]:
+        """Получить все чаты."""
+        stmt = select(Chat).order_by(Chat.created_at.desc())
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+    
+    async def set_google_sheet(self, chat_id: int, url: Optional[str]) -> Optional[Chat]:
+        """Установить URL Google Sheets для чата."""
+        stmt = select(Chat).where(Chat.chat_id == chat_id)
+        result = await self.session.execute(stmt)
+        chat = result.scalar_one_or_none()
+        
+        if chat:
+            chat.google_sheet_url = url
+            if url:
+                from datetime import datetime
+                chat.google_sheet_synced_at = datetime.now()
+            await self.session.commit()
+            await self.session.refresh(chat)
+        
+        return chat
+    
+    async def set_quote_template(self, chat_id: int, path: Optional[str]) -> Optional[Chat]:
+        """Установить путь к плашке для цитат."""
+        stmt = select(Chat).where(Chat.chat_id == chat_id)
+        result = await self.session.execute(stmt)
+        chat = result.scalar_one_or_none()
+        
+        if chat:
+            chat.quote_template_path = path
+            await self.session.commit()
+            await self.session.refresh(chat)
+        
+        return chat
 
 
 class QuoteRepository:
@@ -102,19 +137,27 @@ class ActivistRepository:
         self,
         chat: Chat,
         full_name: str,
-        user_id: Optional[int] = None,
-        username: Optional[str] = None,
+        username: str,
         surname: Optional[str] = None,
+        group_name: Optional[str] = None,
+        phone: Optional[str] = None,
+        has_license: Optional[str] = None,
+        address: Optional[str] = None,
+        user_id: Optional[int] = None,
         info: Optional[str] = None,
         role: Optional[str] = None,
     ) -> Activist:
         """Добавить активиста."""
         activist = Activist(
             chat_pk=chat.id,
-            user_id=user_id,
-            username=username,
             full_name=full_name,
+            username=username,
             surname=surname,
+            group_name=group_name,
+            phone=phone,
+            has_license=has_license,
+            address=address,
+            user_id=user_id,
             info=info,
             role=role,
         )
@@ -148,6 +191,19 @@ class ActivistRepository:
         stmt = select(Activist).where(Activist.chat_pk == chat.id)
         result = await self.session.execute(stmt)
         return result.scalars().all()
+    
+    async def clear_all(self, chat: Chat) -> int:
+        """Удалить всех активистов чата. Возвращает количество."""
+        stmt = delete(Activist).where(Activist.chat_pk == chat.id)
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.rowcount
+    
+    async def count(self, chat: Chat) -> int:
+        """Получить количество активистов в чате."""
+        stmt = select(func.count(Activist.id)).where(Activist.chat_pk == chat.id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one()
 
 
 class ReminderRepository:

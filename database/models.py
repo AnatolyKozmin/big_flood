@@ -25,6 +25,13 @@ class Chat(Base):
         server_default=func.now()
     )
     
+    # Google Sheet для импорта активистов
+    google_sheet_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    google_sheet_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    
+    # Плашка для цитат (путь к файлу или URL)
+    quote_template_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    
     # Связи
     quotes: Mapped[list["Quote"]] = relationship(
         "Quote", back_populates="chat", cascade="all, delete-orphan"
@@ -90,12 +97,23 @@ class Activist(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     chat_pk: Mapped[int] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"), nullable=False)
     
-    user_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
-    username: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    # Обязательные поля
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    username: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    
+    # Фамилия для поиска (извлекается из ФИО)
     surname: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
     
-    # Информация об активисте
+    # Опциональные поля из таблицы
+    group_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Группа
+    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # Номер телефона
+    has_license: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # Есть права
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Адрес
+    
+    # Telegram user_id (если известен)
+    user_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
+    
+    # Дополнительная информация (legacy поля)
     info: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     role: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     
@@ -106,7 +124,7 @@ class Activist(Base):
     chat: Mapped["Chat"] = relationship("Chat", back_populates="activists")
     
     def __repr__(self) -> str:
-        return f"<Activist(id={self.id}, full_name={self.full_name})>"
+        return f"<Activist(id={self.id}, full_name={self.full_name}, username={self.username})>"
 
 
 class Quote(Base):

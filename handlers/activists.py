@@ -45,9 +45,21 @@ async def cmd_info(message: Message, session: AsyncSession, command_args: str):
     # Формируем информацию
     info_parts = [f"👤 <b>{activist.full_name}</b>"]
     
-    if activist.username:
-        info_parts.append(f"📱 @{activist.username}")
+    info_parts.append(f"📱 @{activist.username}")
     
+    if activist.group_name:
+        info_parts.append(f"🎓 Группа: {activist.group_name}")
+    
+    if activist.phone:
+        info_parts.append(f"📞 Телефон: {activist.phone}")
+    
+    if activist.has_license:
+        info_parts.append(f"🚗 Права: {activist.has_license}")
+    
+    if activist.address:
+        info_parts.append(f"📍 Адрес: {activist.address}")
+    
+    # Legacy поля (для обратной совместимости)
     if activist.role:
         info_parts.append(f"🎭 Роль: {activist.role}")
     

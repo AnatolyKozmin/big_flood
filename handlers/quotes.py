@@ -1,9 +1,10 @@
 from aiogram import Router, F
-from aiogram.types import Message
+from aiogram.types import Message, BufferedInputFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.repositories import ChatRepository, QuoteRepository
 from filters import BangCommand
+from services.quote_generator import QuoteImageGenerator
 
 router = Router(name="quotes")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
@@ -51,7 +52,7 @@ async def cmd_add_quote(message: Message, session: AsyncSession, command_args: s
 
 @router.message(BangCommand("мудрость"))
 async def cmd_random_quote(message: Message, session: AsyncSession, command_args: str):
-    """!мудрость — случайная цитата."""
+    """!мудрость — случайная цитата (с картинкой)."""
     chat_repo = ChatRepository(session)
     quote_repo = QuoteRepository(session)
     
@@ -65,10 +66,29 @@ async def cmd_random_quote(message: Message, session: AsyncSession, command_args
         await message.answer("📭 В этом чате ещё нет цитат. Добавь первую командой !цитата")
         return
     
-    author = f"\n\n— <i>{quote.author_name}</i>" if quote.author_name else ""
-    
-    await message.answer(
-        f"💬 <b>Мудрость #{quote.id}:</b>\n\n"
-        f"«{quote.text}»{author}",
-        parse_mode="HTML"
-    )
+    # Генерируем картинку
+    try:
+        generator = QuoteImageGenerator(
+            template_path=chat.quote_template_path
+        )
+        image_bytes = generator.generate(
+            quote_text=quote.text,
+            author_name=quote.author_name,
+            quote_id=quote.id
+        )
+        
+        # Отправляем как фото
+        photo = BufferedInputFile(image_bytes, filename=f"quote_{quote.id}.png")
+        await message.answer_photo(photo)
+        
+    except Exception as e:
+        # Fallback на текстовый формат если генерация не удалась
+        import logging
+        logging.getLogger(__name__).error(f"Quote image generation failed: {e}")
+        
+        author = f"\n\n— <i>{quote.author_name}</i>" if quote.author_name else ""
+        await message.answer(
+            f"💬 <b>Мудрость #{quote.id}:</b>\n\n"
+            f"«{quote.text}»{author}",
+            parse_mode="HTML"
+        )
