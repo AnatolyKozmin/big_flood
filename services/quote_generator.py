@@ -58,6 +58,7 @@ class QuoteConfig:
     author_y: int = 520
     author_color: str = "#ffc107"
     author_font_size: int = 24
+    author_align: str = "center"  # left, center, right
     
     # Шрифт
     font_path: Optional[str] = None
@@ -85,6 +86,7 @@ class QuoteConfig:
             author_y=template.author_y,
             author_color=template.author_color,
             author_font_size=template.author_font_size,
+            author_align=template.author_align,
             font_path=template.font_path,
         )
 
@@ -271,8 +273,14 @@ class QuoteImageGenerator:
             except:
                 author_width = len(author_text) * cfg.author_font_size * 0.6
             
-            # Центрируем по X
-            author_x = cfg.author_x - author_width // 2
+            # Вычисляем X в зависимости от выравнивания
+            if cfg.author_align == "left":
+                author_x = cfg.text_x  # Используем text_x как левую границу
+            elif cfg.author_align == "right":
+                author_x = cfg.text_x + cfg.text_width - author_width
+            else:  # center
+                author_x = cfg.text_x + (cfg.text_width - author_width) // 2
+            
             draw.text((author_x, cfg.author_y), author_text, font=author_font, fill=author_color)
         
         # === НОМЕР ЦИТАТЫ ===

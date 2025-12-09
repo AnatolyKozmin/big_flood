@@ -69,8 +69,12 @@ async def cmd_add_quote(message: Message, session: AsyncSession, command_args: s
             activist = await activist_repo.find_by_query(chat, reply.from_user.username)
         
         if activist:
-            # Берём ФИО из базы данных активистов
-            author_name = activist.full_name
+            # Берём Фамилию и Имя из базы данных активистов (без отчества)
+            name_parts = activist.full_name.split()
+            if len(name_parts) >= 2:
+                author_name = f"{name_parts[0]} {name_parts[1]}"  # Фамилия Имя
+            else:
+                author_name = activist.full_name
             logger.info(f"Found activist in DB: {author_name}")
         else:
             # Fallback на имя из Telegram
@@ -195,7 +199,7 @@ async def cmd_random_quote(message: Message, session: AsyncSession, command_args
         
         author = f"\n\n— <i>{quote.author_name}</i>" if quote.author_name else ""
         await message.answer(
-            f"💬 <b>Мудрость #{quote.id}:</b>\n\n"
+            f"💬 <b>Мудрость :</b>\n\n"
             f"«{quote.text}»{author}",
             parse_mode="HTML"
         )

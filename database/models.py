@@ -239,6 +239,7 @@ class QuoteTemplate(Base):
     author_y: Mapped[int] = mapped_column(Integer, default=520)
     author_color: Mapped[str] = mapped_column(String(20), default="#ffc107")
     author_font_size: Mapped[int] = mapped_column(Integer, default=24)
+    author_align: Mapped[str] = mapped_column(String(10), default="center")  # left, center, right
     
     # Кастомный шрифт
     font_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
