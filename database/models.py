@@ -226,6 +226,7 @@ class QuoteTemplate(Base):
     text_height: Mapped[int] = mapped_column(Integer, default=300)
     text_color: Mapped[str] = mapped_column(String(20), default="#ffffff")
     text_font_size: Mapped[int] = mapped_column(Integer, default=32)
+    text_align: Mapped[str] = mapped_column(String(10), default="center")  # left, center, right
     
     # Область для аватарки (x, y, размер)
     avatar_x: Mapped[int] = mapped_column(Integer, default=350)

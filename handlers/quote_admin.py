@@ -78,15 +78,21 @@ def build_text_keyboard(chat_pk: int, template: QuoteTemplate):
     """Меню настройки области текста."""
     builder = InlineKeyboardBuilder()
     
+    # Эмодзи для выравнивания
+    align_emoji = {"left": "⬅️", "center": "↔️", "right": "➡️"}
+    align_name = {"left": "Лево", "center": "Центр", "right": "Право"}
+    current_align = template.text_align or "center"
+    
     builder.button(text=f"X: {template.text_x} ▶️", callback_data=f"qtpl:set:{chat_pk}:text_x")
     builder.button(text=f"Y: {template.text_y} ▶️", callback_data=f"qtpl:set:{chat_pk}:text_y")
     builder.button(text=f"Ширина: {template.text_width} ▶️", callback_data=f"qtpl:set:{chat_pk}:text_width")
     builder.button(text=f"Высота: {template.text_height} ▶️", callback_data=f"qtpl:set:{chat_pk}:text_height")
     builder.button(text=f"Размер шрифта: {template.text_font_size} ▶️", callback_data=f"qtpl:set:{chat_pk}:text_font_size")
     builder.button(text=f"Цвет: {template.text_color} ▶️", callback_data=f"qtpl:set:{chat_pk}:text_color")
+    builder.button(text=f"Выравнивание: {align_emoji.get(current_align, '↔️')} {align_name.get(current_align, 'Центр')}", callback_data=f"qtpl:align:{chat_pk}")
     builder.button(text="◀️ Назад", callback_data=f"qtpl:menu:{chat_pk}")
     
-    builder.adjust(2, 2, 2, 1)
+    builder.adjust(2, 2, 2, 1, 1)
     return builder.as_markup()
 
 
@@ -273,6 +279,59 @@ async def cb_template_text(callback: CallbackQuery):
         reply_markup=build_text_keyboard(chat_pk, template)
     )
     await callback.answer()
+
+
+# ============================================
+# ВЫРАВНИВАНИЕ ТЕКСТА
+# ============================================
+
+@router.callback_query(F.data.startswith("qtpl:align:"))
+async def cb_text_align(callback: CallbackQuery):
+    """Меню выбора выравнивания текста."""
+    chat_pk = int(callback.data.split(":")[2])
+    
+    builder = InlineKeyboardBuilder()
+    builder.button(text="⬅️ По левому краю", callback_data=f"qtpl:setalign:{chat_pk}:left")
+    builder.button(text="↔️ По центру", callback_data=f"qtpl:setalign:{chat_pk}:center")
+    builder.button(text="➡️ По правому краю", callback_data=f"qtpl:setalign:{chat_pk}:right")
+    builder.button(text="◀️ Назад", callback_data=f"qtpl:text:{chat_pk}")
+    builder.adjust(1, 1, 1, 1)
+    
+    await callback.message.edit_text(
+        "📐 <b>Выравнивание текста</b>\n\n"
+        "Выбери как выравнивать строки цитаты:",
+        parse_mode="HTML",
+        reply_markup=builder.as_markup()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("qtpl:setalign:"))
+async def cb_set_align(callback: CallbackQuery):
+    """Установить выравнивание текста."""
+    parts = callback.data.split(":")
+    chat_pk = int(parts[2])
+    align = parts[3]  # left, center, right
+    
+    async with async_session() as session:
+        from sqlalchemy import select
+        from database.models import Chat
+        
+        stmt = select(Chat).where(Chat.id == chat_pk)
+        result = await session.execute(stmt)
+        chat = result.scalar_one_or_none()
+        
+        if not chat:
+            await callback.answer("❌ Чат не найден", show_alert=True)
+            return
+        
+        template_repo = QuoteTemplateRepository(session)
+        template = await template_repo.get_or_create(chat)
+        await template_repo.update(template, text_align=align)
+    
+    align_names = {"left": "по левому краю", "center": "по центру", "right": "по правому краю"}
+    await callback.answer(f"✅ Выравнивание: {align_names.get(align, align)}", show_alert=True)
+    await cb_template_text(callback)
 
 
 # ============================================

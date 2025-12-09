@@ -45,6 +45,7 @@ class QuoteConfig:
     text_height: int = 300
     text_color: str = "#ffffff"
     text_font_size: int = 32
+    text_align: str = "center"  # left, center, right
     
     # Аватарка
     avatar_x: int = 350
@@ -75,6 +76,7 @@ class QuoteConfig:
             text_height=template.text_height,
             text_color=template.text_color,
             text_font_size=template.text_font_size,
+            text_align=template.text_align,
             avatar_x=template.avatar_x,
             avatar_y=template.avatar_y,
             avatar_size=template.avatar_size,
@@ -228,17 +230,23 @@ class QuoteImageGenerator:
         start_y = cfg.text_y + (cfg.text_height - total_text_height) // 2
         start_y = max(cfg.text_y, start_y)
         
-        # Рисуем строки
+        # Рисуем строки с учётом выравнивания
         current_y = start_y
         for line in lines:
-            # Центрируем по горизонтали в области text_width
             try:
                 bbox = draw.textbbox((0, 0), line, font=text_font)
                 line_width = bbox[2] - bbox[0]
             except:
                 line_width = len(line) * cfg.text_font_size * 0.6
             
-            x = cfg.text_x + (cfg.text_width - line_width) // 2
+            # Вычисляем X в зависимости от выравнивания
+            if cfg.text_align == "left":
+                x = cfg.text_x
+            elif cfg.text_align == "right":
+                x = cfg.text_x + cfg.text_width - line_width
+            else:  # center
+                x = cfg.text_x + (cfg.text_width - line_width) // 2
+            
             draw.text((x, current_y), line, font=text_font, fill=text_color)
             current_y += line_height
         
