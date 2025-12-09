@@ -41,9 +41,12 @@ async def cmd_add_quote(message: Message, session: AsyncSession, command_args: s
         await message.answer("❌ В сообщении нет текста для цитаты!")
         return
     
+    from database.repositories import ActivistRepository
+    
     chat_repo = ChatRepository(session)
     quote_repo = QuoteRepository(session)
     template_repo = QuoteTemplateRepository(session)
+    activist_repo = ActivistRepository(session)
     
     chat = await chat_repo.get_or_create(
         chat_id=message.chat.id,
@@ -53,8 +56,26 @@ async def cmd_add_quote(message: Message, session: AsyncSession, command_args: s
     author_name = None
     author_id = None
     if reply.from_user:
-        author_name = reply.from_user.full_name
         author_id = reply.from_user.id
+        
+        # Пробуем найти автора в базе активистов
+        activist = None
+        
+        # 1. Сначала ищем по user_id (если он привязан)
+        activist = await activist_repo.find_by_user_id(chat, author_id)
+        
+        # 2. Если не нашли — ищем по username
+        if not activist and reply.from_user.username:
+            activist = await activist_repo.find_by_query(chat, reply.from_user.username)
+        
+        if activist:
+            # Берём ФИО из базы данных активистов
+            author_name = activist.full_name
+            logger.info(f"Found activist in DB: {author_name}")
+        else:
+            # Fallback на имя из Telegram
+            author_name = reply.from_user.full_name
+            logger.info(f"Activist not found, using Telegram name: {author_name}")
     
     # Сохраняем цитату
     quote = await quote_repo.add(

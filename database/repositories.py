@@ -180,6 +180,15 @@ class ActivistRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
     
+    async def find_by_user_id(self, chat: Chat, user_id: int) -> Optional[Activist]:
+        """Найти активиста по Telegram user_id."""
+        stmt = select(Activist).where(
+            Activist.chat_pk == chat.id,
+            Activist.user_id == user_id
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+    
     async def get_random(self, chat: Chat) -> Optional[Activist]:
         """Получить случайного активиста."""
         stmt = select(Activist).where(Activist.chat_pk == chat.id).order_by(func.random()).limit(1)
