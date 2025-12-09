@@ -228,10 +228,6 @@ class QuoteImageGenerator:
         start_y = cfg.text_y + (cfg.text_height - total_text_height) // 2
         start_y = max(cfg.text_y, start_y)
         
-        # Рисуем кавычки
-        quote_mark_font = self._get_font(60)
-        draw.text((cfg.text_x - 10, start_y - 40), "«", font=quote_mark_font, fill=(*author_color, 100))
-        
         # Рисуем строки
         current_y = start_y
         for line in lines:
@@ -245,10 +241,6 @@ class QuoteImageGenerator:
             x = cfg.text_x + (cfg.text_width - line_width) // 2
             draw.text((x, current_y), line, font=text_font, fill=text_color)
             current_y += line_height
-        
-        # Закрывающая кавычка
-        draw.text((cfg.text_x + cfg.text_width - 40, current_y - 20), "»", 
-                  font=quote_mark_font, fill=(*author_color, 100))
         
         # === АВАТАРКА ===
         if cfg.avatar_enabled and avatar_bytes:

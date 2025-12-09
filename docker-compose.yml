@@ -12,6 +12,8 @@ services:
       - BOT_TOKEN=${BOT_TOKEN}
       - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - bot_assets:/app/assets
     networks:
       - bot_network
 
@@ -73,6 +75,7 @@ volumes:
   postgres_data:
   pgadmin_data:
   redis_data:
+  bot_assets:
 
 networks:
   bot_network:
