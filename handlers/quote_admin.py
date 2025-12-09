@@ -134,7 +134,8 @@ def build_back_keyboard(chat_pk: int):
 async def cb_template_menu(callback: CallbackQuery, state: FSMContext):
     """Главное меню настройки шаблона цитат."""
     chat_pk = int(callback.data.split(":")[2])
-    await state.clear()
+    if state:
+        await state.clear()
     
     async with async_session() as session:
         from sqlalchemy import select
@@ -151,7 +152,7 @@ async def cb_template_menu(callback: CallbackQuery, state: FSMContext):
         template_repo = QuoteTemplateRepository(session)
         template = await template_repo.get_or_create(chat)
     
-    await callback.message.edit_text(
+    text = (
         f"🎨 <b>Настройка шаблона цитат</b>\n\n"
         f"📝 Чат: {chat.title or 'Без названия'}\n\n"
         f"<b>Текущие настройки:</b>\n"
@@ -160,10 +161,23 @@ async def cb_template_menu(callback: CallbackQuery, state: FSMContext):
         f"👤 Аватар: {'✅' if template.avatar_enabled else '❌'} ({template.avatar_x}, {template.avatar_y}) {template.avatar_size}px\n"
         f"✍️ Автор: ({template.author_x}, {template.author_y})\n"
         f"🖼 Фон: {'✅ Загружен' if template.background_path else '❌ Нет'}\n"
-        f"🔤 Шрифт: {'✅ Загружен' if template.font_path else '🔤 Стандартный'}",
-        parse_mode="HTML",
-        reply_markup=build_template_menu_keyboard(chat_pk)
+        f"🔤 Шрифт: {'✅ Загружен' if template.font_path else '🔤 Стандартный'}"
     )
+    
+    # Если сообщение — фото (после превью), отправляем новое сообщение
+    if callback.message.photo:
+        await callback.message.delete()
+        await callback.message.answer(
+            text,
+            parse_mode="HTML",
+            reply_markup=build_template_menu_keyboard(chat_pk)
+        )
+    else:
+        await callback.message.edit_text(
+            text,
+            parse_mode="HTML",
+            reply_markup=build_template_menu_keyboard(chat_pk)
+        )
     await callback.answer()
 
 
@@ -698,6 +712,12 @@ async def cb_preview_with_zones(callback: CallbackQuery):
     image_bytes = generator.generate_preview(show_zones=True)
     photo = BufferedInputFile(image_bytes, filename="preview.png")
     
+    # Удаляем старое сообщение и отправляем фото
+    try:
+        await callback.message.delete()
+    except:
+        pass
+    
     await callback.message.answer_photo(
         photo,
         caption="🔴 Превью с зонами\n\n"
@@ -732,6 +752,12 @@ async def cb_preview_clean(callback: CallbackQuery):
         quote_id=42
     )
     photo = BufferedInputFile(image_bytes, filename="preview.png")
+    
+    # Удаляем старое сообщение и отправляем фото
+    try:
+        await callback.message.delete()
+    except:
+        pass
     
     await callback.message.answer_photo(
         photo,

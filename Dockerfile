@@ -2,11 +2,14 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Установка зависимостей для psycopg и PostgreSQL клиента
+# Установка зависимостей для psycopg, PostgreSQL клиента и шрифтов
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+    fonts-dejavu-core \
+    fontconfig \
+    && rm -rf /var/lib/apt/lists/* \
+    && fc-cache -f -v
 
 # Копируем requirements и устанавливаем зависимости
 COPY requirements.txt .

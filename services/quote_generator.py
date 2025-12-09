@@ -135,10 +135,13 @@ class QuoteImageGenerator:
                 except Exception:
                     continue
         
-        # Системные шрифты
+        # Системные шрифты с поддержкой кириллицы
         system_fonts = [
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Debian/Ubuntu
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",  # Arch
+            "/usr/share/fonts/dejavu/DejaVuSans.ttf",  # Fedora
+            "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",  # macOS
             "/System/Library/Fonts/Helvetica.ttc",
             "C:\\Windows\\Fonts\\arial.ttf",
         ]
