@@ -53,8 +53,8 @@ class QuoteConfig:
     avatar_size: int = 80
     avatar_enabled: bool = True
     
-    # Автор
-    author_x: int = 400
+    # Автор (author_x — левый край области подписи)
+    author_x: int = 60  # По умолчанию как text_x
     author_y: int = 520
     author_color: str = "#ffc107"
     author_font_size: int = 24
@@ -269,19 +269,20 @@ class QuoteImageGenerator:
             author_text = f"— {author_name}"
             try:
                 bbox = draw.textbbox((0, 0), author_text, font=author_font)
-                author_width = bbox[2] - bbox[0]
+                author_text_width = bbox[2] - bbox[0]
             except:
-                author_width = len(author_text) * cfg.author_font_size * 0.6
+                author_text_width = len(author_text) * cfg.author_font_size * 0.6
             
-            # Вычисляем X в зависимости от выравнивания
+            # author_x — левый край области подписи
+            # Используем text_width как ширину области подписи
             if cfg.author_align == "left":
-                author_x = cfg.text_x  # Используем text_x как левую границу
+                x = cfg.author_x
             elif cfg.author_align == "right":
-                author_x = cfg.text_x + cfg.text_width - author_width
+                x = cfg.author_x + cfg.text_width - author_text_width
             else:  # center
-                author_x = cfg.text_x + (cfg.text_width - author_width) // 2
+                x = cfg.author_x + (cfg.text_width - author_text_width) // 2
             
-            draw.text((author_x, cfg.author_y), author_text, font=author_font, fill=author_color)
+            draw.text((x, cfg.author_y), author_text, font=author_font, fill=author_color)
         
         # === НОМЕР ЦИТАТЫ ===
         if quote_id:

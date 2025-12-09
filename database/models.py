@@ -234,8 +234,8 @@ class QuoteTemplate(Base):
     avatar_size: Mapped[int] = mapped_column(Integer, default=80)
     avatar_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     
-    # Область для имени автора (x, y)
-    author_x: Mapped[int] = mapped_column(Integer, default=400)
+    # Область для имени автора (author_x — левый край области)
+    author_x: Mapped[int] = mapped_column(Integer, default=60)
     author_y: Mapped[int] = mapped_column(Integer, default=520)
     author_color: Mapped[str] = mapped_column(String(20), default="#ffc107")
     author_font_size: Mapped[int] = mapped_column(Integer, default=24)

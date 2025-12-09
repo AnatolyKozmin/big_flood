@@ -469,7 +469,8 @@ async def cb_template_author(callback: CallbackQuery):
     await callback.message.edit_text(
         "✍️ <b>Настройка имени автора</b>\n\n"
         "Имя автора отображается под цитатой.\n"
-        "X, Y — координаты центра текста.",
+        "X — левый край области подписи\n"
+        "Y — вертикальная позиция",
         parse_mode="HTML",
         reply_markup=build_author_keyboard(chat_pk, template)
     )
